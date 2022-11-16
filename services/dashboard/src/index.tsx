@@ -24,7 +24,7 @@ root.render(
 	</React.StrictMode>
 );
 
-document.body.classList.add("h-full", "bg-gray-50");
+document.body.classList.add("h-full");
 
 // If you want to start measuring performance in your app, pass a function
 // to log results (for example: reportWebVitals(console.log))
