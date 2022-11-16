@@ -9,3 +9,5 @@ require github.com/totomz/template-burrito/common/httpserver v0.0.0-000101010000
 replace github.com/totomz/template-burrito/common/burrito-common => ../../common/burrito-common
 
 require github.com/totomz/template-burrito/common/burrito-common v0.0.0-00010101000000-000000000000
+
+require github.com/form3tech-oss/jwt-go v3.2.5+incompatible

@@ -15,6 +15,8 @@ root.render(
 			redirectUri={window.location.origin}
 			cacheLocation={"localstorage"} 
 			useRefreshTokens={true}
+			scope={"superuser openid profile email"}	
+			audience={"https://burrito-template.daje"}
 		>
 			<BrowserRouter>
 				<App/>

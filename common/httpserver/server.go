@@ -29,7 +29,6 @@ const (
 )
 
 type Endpoint struct {
-	Method       string
 	Handler      Handler
 	ErrorHandler Handler
 	InputFilters []InFilter
@@ -42,7 +41,10 @@ type HttpServer struct {
 	StopChan chan bool
 }
 
-var stdout, stderr *log.Logger
+var (
+	stdout = log.New(os.Stdout, "", log.Lshortfile)
+	stderr = log.New(os.Stderr, "[error]", log.Lshortfile)
+)
 
 type Service interface {
 	StartupProbe(ctx context.Context, r *http.Request) (interface{}, error)
@@ -107,12 +109,26 @@ func Jsonize(_ context.Context, request interface{}, err error) ([]byte, int) {
 	return data, httpStatuscode
 }
 
-var DefaultOutChain = []OutFilter{Jsonize}
+// func LogResponseStats(ctx context.Context, _ interface{}, _ error) ([]byte, int) {
+// 	now := time.Now()
+// 	elapsed := time.Duration(0)
+//
+// 	trace := ctx.Value(CtxTrace).(int64)
+// 	api := ctx.Value(CtxApiCall).(string)
+//
+// 	start, hasStart := ctx.Value(CtxApiStart).(time.Time)
+// 	if hasStart {
+// 		elapsed = now.Sub(start)
+// 	}
+//
+// 	stdout.Printf("    :request %s %v [%v]", api, elapsed, trace)
+//
+// 	return nil, 0
+// }
 
-func NewHttpServer(service Service, logInfo, logErr *log.Logger) *HttpServer {
+var DefaultOutChain = []OutFilter{Jsonize /*, LogResponseStats*/}
 
-	stdout = logInfo
-	stderr = logErr
+func NewHttpServer(service Service) *HttpServer {
 
 	// fileServer := http.FileServer(http.Dir("./webmin/dist/"))
 	mux := http.NewServeMux()
@@ -194,6 +210,7 @@ func NewHttpServer(service Service, logInfo, logErr *log.Logger) *HttpServer {
 				}
 			}
 
+			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(responseStatus)
 			_, err := w.Write(responseData)
 			if err != nil {
