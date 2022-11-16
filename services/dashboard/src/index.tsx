@@ -3,13 +3,22 @@ import ReactDOM from 'react-dom/client';
 import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
+import { BrowserRouter } from "react-router-dom";
+import { Auth0Provider } from "@auth0/auth0-react";
 
-const root = ReactDOM.createRoot(
-	document.getElementById('root') as HTMLElement
-);
+const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
 root.render(
 	<React.StrictMode>
-		<App/>
+		<Auth0Provider
+			domain="syncaltest.eu.auth0.com"
+			clientId="SAYcnLTPtRn8lcvtlR0eil7oP8YjnIHG"
+			redirectUri={window.location.origin}
+		>
+			<BrowserRouter>
+				<App/>
+			</BrowserRouter>
+		</Auth0Provider>
+
 	</React.StrictMode>
 );
 
