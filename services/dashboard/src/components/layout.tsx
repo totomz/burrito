@@ -3,7 +3,7 @@
 */
 
 import { Link, Outlet } from "react-router-dom";
-import { LoginButton, LogoutButton } from "../pages/login";
+import { LogoutButton } from "../pages/login";
 
 export function Layout() {
 	return (
