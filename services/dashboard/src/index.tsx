@@ -13,6 +13,8 @@ root.render(
 			domain="syncaltest.eu.auth0.com"
 			clientId="SAYcnLTPtRn8lcvtlR0eil7oP8YjnIHG"
 			redirectUri={window.location.origin}
+			cacheLocation={"localstorage"} 
+			useRefreshTokens={true}
 		>
 			<BrowserRouter>
 				<App/>
