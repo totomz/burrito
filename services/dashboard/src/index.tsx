@@ -5,18 +5,20 @@ import App from './App';
 import reportWebVitals from './reportWebVitals';
 import { BrowserRouter } from "react-router-dom";
 import { Auth0Provider } from "@auth0/auth0-react";
+import { Config } from "./services/config";
+import config from "tailwindcss/defaultConfig";
 
 const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
 root.render(
 	<React.StrictMode>
 		<Auth0Provider
-			domain="syncaltest.eu.auth0.com"
-			clientId="SAYcnLTPtRn8lcvtlR0eil7oP8YjnIHG"
+			domain={Config.Authconf().domain}
+			clientId={Config.Authconf().clientID}
 			redirectUri={window.location.origin}
 			cacheLocation={"localstorage"} 
 			useRefreshTokens={true}
-			scope={"superuser openid profile email"}	
-			audience={"https://burrito-template.daje"}
+			scope={Config.Authconf().scope}	
+			audience={Config.Authconf().audience}
 		>
 			<BrowserRouter>
 				<App/>

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
+import { Config } from "../services/config";
 
 const Posts = () => {
 	const {getAccessTokenSilently} = useAuth0();
@@ -8,14 +9,8 @@ const Posts = () => {
 	useEffect(() => {
 		(async () => {
 			try {
-				const token = await getAccessTokenSilently({
-					audience: 'https://burrito-template.daje', 
-					scope: 'superuser profile email openid', 
-				});
-				
-				const response = await fetch('http://localhost:8443/hello', {
-					headers: { Authorization: `Bearer ${token}` },
-				});
+				const token = await getAccessTokenSilently(Config.Authconf());
+				const response = await fetch(Config.ApiEndpoint("/hello"), { headers: { Authorization: `Bearer ${token}` } });
 				setPosts(await response.json());
 			}
 			catch (e) {
