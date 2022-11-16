@@ -6,8 +6,24 @@ import { Layout } from "./components/layout";
 import { Home } from "./pages/home";
 import { About } from "./pages/about";
 import { NotFound } from "./pages/404";
+import { useAuth0 } from "@auth0/auth0-react";
+import { LoginButton } from "./pages/login";
 
 function App() {
+	const {user, isAuthenticated, isLoading} = useAuth0();
+	
+	if (isLoading) {
+		return <div>Loading ...</div>;
+	}
+	
+	if(!isAuthenticated) {
+		return (
+			<>
+				<LoginButton></LoginButton>
+			</>
+		);
+	}
+	
 	return (
 		<div>
 			<h1>Basic Example</h1>

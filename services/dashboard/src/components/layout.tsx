@@ -3,6 +3,7 @@
 */
 
 import { Link, Outlet } from "react-router-dom";
+import { LoginButton, LogoutButton } from "../pages/login";
 
 export function Layout() {
 	return (
@@ -17,6 +18,9 @@ export function Layout() {
 					</li>
 					<li>
 						<Link to="/nothing-here">Nothing Here</Link>
+					</li>
+					<li>
+						<LogoutButton></LogoutButton>
 					</li>
 				</ul>
 			</nav>
