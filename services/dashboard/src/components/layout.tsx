@@ -2,7 +2,7 @@ import { Disclosure, Menu, Transition } from '@headlessui/react'
 import { Bars3Icon, BellIcon, XMarkIcon } from '@heroicons/react/24/outline'
 import { Fragment } from "react";
 import { useAuth0 } from "@auth0/auth0-react";
-import { useLocation } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 
 const navigation = [
 	{name: 'Dashboard', href: '/', current: true},
@@ -166,7 +166,9 @@ export function Layout() {
 						<div className="mx-auto max-w-7xl sm:px-6 lg:px-8">
 							{/* Replace with your content */}
 							<div className="px-4 py-8 sm:px-0">
-								<div className="h-96 rounded-lg border-4 border-dashed border-gray-200"/>
+								<div className="h-96 rounded-lg border-4 border-dashed border-gray-200">
+      								<Outlet />
+								</div>
 							</div>
 							{/* /End replace */}
 						</div>
