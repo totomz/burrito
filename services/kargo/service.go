@@ -7,6 +7,9 @@ import (
 	"fmt"
 	"github.com/form3tech-oss/jwt-go"
 	"github.com/totomz/template-burrito/common/httpserver"
+	"go.opencensus.io/stats"
+	"go.opencensus.io/stats/view"
+	"go.opencensus.io/tag"
 	"log"
 	"net/http"
 	"os"
@@ -18,6 +21,18 @@ var (
 	stderr = log.New(os.Stderr, "[ERROR]", log.Lshortfile|log.Ltime)
 
 	DefaultJwtInChain = []httpserver.InFilter{httpserver.InitRequest, AuthJwt}
+	NoAuthInChain     = []httpserver.InFilter{httpserver.InitRequest}
+
+	// Custom metrics
+	MetricPong = stats.Int64("pong", "", stats.UnitDimensionless)
+	KeyBom, _  = tag.NewKey("KeyBom")
+	PongView   = &view.View{
+		Name:        "pong",
+		Measure:     MetricPong,
+		Description: "The counts of Pongs",
+		Aggregation: view.Count(),
+		TagKeys:     []tag.Key{KeyBom},
+	}
 )
 
 const (
@@ -29,6 +44,12 @@ type Service struct {
 }
 
 func NewService() *Service {
+
+	// Register some custom metrics
+	// Register the views
+	if err := view.Register(PongView); err != nil {
+		log.Fatalf("Failed to register views: %v", err)
+	}
 	return &Service{
 		endpoints: map[string]map[string]httpserver.Endpoint{
 			"/hello": {
@@ -38,7 +59,32 @@ func NewService() *Service {
 					OutFilters:   httpserver.DefaultOutChain,
 				},
 			},
+			"/test/ciao": {
+				"GET": {
+					Handler:      testStatus,
+					InputFilters: NoAuthInChain,
+					OutFilters:   httpserver.DefaultOutChain,
+				},
+			},
 		},
+	}
+}
+
+func testStatus(ctx context.Context, request *http.Request) (interface{}, error) {
+	// The context inherited the labels set in the InitRequest()N (like the env, the path)
+	// Create a new context if you whish to clean the labels
+	stats.Record(ctx, MetricPong.M(1))
+
+	coed := request.URL.Query().Get("status")
+	switch coed {
+	case "200":
+		return "200", nil
+	case "404":
+		return nil, httpserver.ErrNotFound{Message: "Not Found"}
+	case "400":
+		return nil, httpserver.ErrBadRequest{Message: "Bad Request"}
+	default:
+		return nil, errors.New("status not mapped")
 	}
 }
 
@@ -120,7 +166,7 @@ MIIDCTCCAfGgAwIBAgIJQYVFkCZQx7ePMA0GCSqGSIb3DQEBCwUAMCIxIDAeBgNVBAMTF3N5bmNhbHRl
 	return newctx, nil
 }
 
-func HelloProtected(ctx context.Context, request *http.Request) (interface{}, error) {
+func HelloProtected(ctx context.Context, _ *http.Request) (interface{}, error) {
 	userId := ctx.Value(CtxUserId)
 	stdout.Printf("got request from user %s", userId)
 

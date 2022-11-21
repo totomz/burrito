@@ -37,3 +37,18 @@ func (e ErrNotFound) Error() string {
 func (e ErrNotFound) HttpCode() int {
 	return http.StatusBadRequest
 }
+
+func errorToHttpStatuscode(err error) int {
+	httpStatuscode := 500
+	switch err.(type) {
+	case ErrUnauthorized:
+		httpStatuscode = (err.(ErrUnauthorized)).HttpCode()
+	case ErrBadRequest:
+		httpStatuscode = (err.(ErrBadRequest)).HttpCode()
+	case ErrNotFound:
+		httpStatuscode = (err.(ErrNotFound)).HttpCode()
+	default:
+		httpStatuscode = http.StatusInternalServerError
+	}
+	return httpStatuscode
+}

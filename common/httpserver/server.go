@@ -4,10 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"go.opencensus.io/stats"
+	"go.opencensus.io/tag"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -23,9 +26,7 @@ type Handler func(ctx context.Context, request *http.Request) (interface{}, erro
 type OutFilter func(ctx context.Context, request interface{}, err error) ([]byte, int)
 
 const (
-	CtxTrace = iota
-	CtxApiCall
-	CtxApiStart
+	CtxApiStart = iota
 )
 
 type Endpoint struct {
@@ -66,12 +67,8 @@ type Service interface {
 
 func InitRequest(ctx context.Context, request *http.Request) (context.Context, error) {
 
-	apiCall := request.Method + " " + request.URL.Path
-	trace := time.Now().Unix()
-
-	newctx := context.WithValue(ctx, CtxTrace, trace)
-	newctx = context.WithValue(newctx, CtxApiCall, apiCall)
-	newctx = context.WithValue(newctx, CtxApiStart, time.Now())
+	newctx := context.WithValue(ctx, CtxApiStart, time.Now())
+	newctx, _ = tag.New(newctx, tag.Insert(KeyMethod, request.Method), tag.Insert(KeyPath, request.URL.Path))
 
 	return newctx, nil
 }
@@ -81,54 +78,47 @@ func Jsonize(_ context.Context, request interface{}, err error) ([]byte, int) {
 	var data []byte
 	httpStatuscode := http.StatusOK
 
-	if err != nil {
-
-		switch err.(type) {
-		case ErrUnauthorized:
-			httpStatuscode = (err.(ErrUnauthorized)).HttpCode()
-			data, _ = json.Marshal(err)
-		case ErrBadRequest:
-			httpStatuscode = (err.(ErrBadRequest)).HttpCode()
-			data, _ = json.Marshal(err)
-		case ErrNotFound:
-			httpStatuscode = (err.(ErrNotFound)).HttpCode()
-			data, _ = json.Marshal(err)
-
-		default:
-			httpStatuscode = http.StatusInternalServerError
-			stderr.Printf("request error - %v ", err)
-			data = []byte(fmt.Sprintf(`{"message": "%s"}`, err.Error()))
-		}
-	} else {
+	if err == nil {
 		data, err = json.Marshal(request)
 		if err != nil {
-			panic(err) // boh, someone will fix this
+			stderr.Printf("can't marshal response to json - %s", err.Error())
+			data = []byte("")
 		}
+		return data, httpStatuscode
+	}
+
+	httpStatuscode = errorToHttpStatuscode(err)
+	data, _ = json.Marshal(err)
+	if httpStatuscode == http.StatusInternalServerError {
+		stderr.Printf("request error - %v ", err)
+		data = []byte(fmt.Sprintf(`{"message": "%s"}`, err.Error()))
 	}
 
 	return data, httpStatuscode
 }
 
-// func LogResponseStats(ctx context.Context, _ interface{}, _ error) ([]byte, int) {
-// 	now := time.Now()
-// 	elapsed := time.Duration(0)
-//
-// 	trace := ctx.Value(CtxTrace).(int64)
-// 	api := ctx.Value(CtxApiCall).(string)
-//
-// 	start, hasStart := ctx.Value(CtxApiStart).(time.Time)
-// 	if hasStart {
-// 		elapsed = now.Sub(start)
-// 	}
-//
-// 	stdout.Printf("    :request %s %v [%v]", api, elapsed, trace)
-//
-// 	return nil, 0
-// }
+func LogResponseStats(ctx context.Context, _ interface{}, err error) ([]byte, int) {
 
-var DefaultOutChain = []OutFilter{Jsonize /*, LogResponseStats*/}
+	httpStatuscode := http.StatusOK
+	if err != nil {
+		httpStatuscode = errorToHttpStatuscode(err)
+	}
 
-func NewHttpServer(service Service) *HttpServer {
+	ctx, _ = tag.New(ctx, tag.Upsert(KeyStatus, strconv.Itoa(httpStatuscode)))
+
+	stats.Record(ctx, MetricApiStatus.M(1))
+
+	start, hasStart := ctx.Value(CtxApiStart).(time.Time)
+	if hasStart {
+		stats.Record(ctx, MetricApiLatency.M(sinceInMilliseconds(start)))
+	}
+
+	return nil, 0
+}
+
+var DefaultOutChain = []OutFilter{Jsonize, LogResponseStats}
+
+func NewHttpServer(service Service, metrics *StandardMetrics) *HttpServer {
 
 	// fileServer := http.FileServer(http.Dir("./webmin/dist/"))
 	mux := http.NewServeMux()
@@ -136,9 +126,6 @@ func NewHttpServer(service Service) *HttpServer {
 	// The notFoundHandler logs requests for unmapped urls
 	// We should move the dashboard somewhere else, or under a different path.
 	mux.HandleFunc("/", notFoundHandler)
-	// mux.Handle("/admin", http.StripPrefix("/", fileServer))
-	// mux.Handle("/admin", http.StripPrefix("/admin", fileServer))
-	// mux.Handle("/", http.StripPrefix("/", fileServer))
 
 	httpEndpoints := service.Endpoints()
 
@@ -217,6 +204,10 @@ func NewHttpServer(service Service) *HttpServer {
 				stderr.Printf("panic error? %v", err)
 			}
 		})
+	}
+
+	if metrics != nil {
+		metrics.InitializeMetrics()
 	}
 
 	return &HttpServer{

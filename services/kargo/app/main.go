@@ -9,9 +9,19 @@ import (
 )
 
 func main() {
+	// The service has your business logic
 	service := kargo.NewService()
 
-	server := httpserver.NewHttpServer(service)
+	// Enable http metrics and traces, with some default labels
+	// Passing nil to NewHttpServer() to disable the metrics is not supported, I'm sorry
+	metrics := httpserver.StandardMetrics{
+		Namespace: "kargo",
+		ConstLabels: map[string]string{
+			"env": "prod",
+		},
+	}
+
+	server := httpserver.NewHttpServer(service, &metrics)
 
 	port, _ := strconv.Atoi(burrito_common.GetenvOrDefault("BIND_PORT", "8443"))
 
