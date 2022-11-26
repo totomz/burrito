@@ -69,7 +69,6 @@ func InitRequest(ctx context.Context, request *http.Request) (context.Context, e
 
 	newctx := context.WithValue(ctx, CtxApiStart, time.Now())
 	newctx, _ = tag.New(newctx, tag.Insert(KeyMethod, request.Method), tag.Insert(KeyPath, request.URL.Path))
-
 	return newctx, nil
 }
 

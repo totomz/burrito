@@ -10,10 +10,13 @@ import (
 	"go.opencensus.io/stats"
 	"go.opencensus.io/stats/view"
 	"go.opencensus.io/tag"
+	"go.opencensus.io/trace"
 	"log"
+	"math/rand"
 	"net/http"
 	"os"
 	"strings"
+	"time"
 )
 
 var (
@@ -33,6 +36,8 @@ var (
 		Aggregation: view.Count(),
 		TagKeys:     []tag.Key{KeyBom},
 	}
+
+	rnd = rand.New(rand.NewSource(time.Now().UnixMilli()))
 )
 
 const (
@@ -62,6 +67,13 @@ func NewService() *Service {
 			"/test/ciao": {
 				"GET": {
 					Handler:      testStatus,
+					InputFilters: NoAuthInChain,
+					OutFilters:   httpserver.DefaultOutChain,
+				},
+			},
+			"/test/trace": {
+				"GET": {
+					Handler:      testTrace,
 					InputFilters: NoAuthInChain,
 					OutFilters:   httpserver.DefaultOutChain,
 				},
@@ -171,4 +183,31 @@ func HelloProtected(ctx context.Context, _ *http.Request) (interface{}, error) {
 	stdout.Printf("got request from user %s", userId)
 
 	return []string{"blue", "green", "yellow", "cow"}, nil
+}
+
+func testTrace(ctx context.Context, _ *http.Request) (interface{}, error) {
+	ctx, span := trace.StartSpan(ctx, "main")
+	defer span.End()
+	workA(ctx)
+	return "done", nil
+}
+
+func workA(ctx context.Context) {
+	ctx, span := trace.StartSpan(ctx, "workA")
+	defer span.End()
+	time.Sleep(time.Duration(rnd.Intn(3500)) * time.Millisecond)
+	workb(ctx)
+}
+
+func workb(ctx context.Context) {
+	ctx, span := trace.StartSpan(ctx, "workB")
+	defer span.End()
+	time.Sleep(time.Duration(rnd.Intn(3500)) * time.Millisecond)
+	workc(ctx)
+}
+
+func workc(ctx context.Context) {
+	ctx, span := trace.StartSpan(ctx, "workC")
+	defer span.End()
+	time.Sleep(time.Duration(rnd.Intn(3500)) * time.Millisecond)
 }
