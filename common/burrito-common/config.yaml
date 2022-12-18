@@ -1,0 +1,5 @@
+provider:
+  outlook:
+    oauth:
+      clientId: "clientid"
+      clientSecret: "clientSecret"
