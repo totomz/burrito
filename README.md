@@ -5,14 +5,16 @@
 # template-burrito
 template for monorepo services
 
-# How to use
-Checkout your project
-```shell
-git@github.com:croccocode/calsync.git
-```
+You need [shMake](https://github.com/totomz/shmake) to use this template.
 
-Import burrito-template
+# How to use
+1. Checkout an empty repository
+2. Import burrito-template
 ```shell
 git remote add template git@github.com:totomz/template-burrito.git
 git pull remote main
+```
+3. Update the Go module path reference
+```shell
+shmake setup
 ```
