@@ -12,7 +12,7 @@ You need [shMake](https://github.com/totomz/shmake) to use this template.
 2. Import burrito-template
 ```shell
 git remote add template git@github.com:totomz/template-burrito.git
-git pull remote main
+git pull --rebase template main
 ```
 3. Update the Go module path reference
 ```shell
