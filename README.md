@@ -14,7 +14,3 @@ You need [shMake](https://github.com/totomz/shmake) to use this template.
 git remote add template git@github.com:totomz/template-burrito.git
 git pull --rebase template main
 ```
-3. Update the Go module path reference
-```shell
-shmake setup
-```

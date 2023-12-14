@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	burrito_common "github.com/totomz/template-burrito/common/burrito-common"
+	"github.com/croccocode/golibz/env"
 	"github.com/totomz/template-burrito/common/httpserver"
 	"github.com/totomz/template-burrito/services/kargo"
 	"strconv"
@@ -23,7 +23,7 @@ func main() {
 
 	server := httpserver.NewHttpServer(service, &metrics)
 
-	port, _ := strconv.Atoi(burrito_common.GetenvOrDefault("BIND_PORT", "8443"))
+	port, _ := strconv.Atoi(env.GetenvOrDefault("BIND_PORT", "8443"))
 
 	println(fmt.Sprintf("Listening on 0.0.0:%v", port))
 

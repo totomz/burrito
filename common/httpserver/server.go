@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/gorilla/mux"
 	"go.opencensus.io/stats"
 	"go.opencensus.io/tag"
 	"log"
@@ -37,14 +38,14 @@ type Endpoint struct {
 }
 
 type HttpServer struct {
-	mux      *http.ServeMux
+	mux      *mux.Router
 	server   *http.Server
 	StopChan chan bool
 }
 
 var (
 	stdout = log.New(os.Stdout, "", log.Lshortfile)
-	stderr = log.New(os.Stderr, "[error]", log.Lshortfile)
+	stderr = log.New(os.Stderr, "[error] ", log.Lshortfile)
 )
 
 type Service interface {
@@ -120,11 +121,11 @@ var DefaultOutChain = []OutFilter{Jsonize, LogResponseStats}
 func NewHttpServer(service Service, metrics *StandardMetrics) *HttpServer {
 
 	// fileServer := http.FileServer(http.Dir("./webmin/dist/"))
-	mux := http.NewServeMux()
-
+	// mux := http.NewServeMux()
+	r := mux.NewRouter()
 	// The notFoundHandler logs requests for unmapped urls
 	// We should move the dashboard somewhere else, or under a different path.
-	mux.HandleFunc("/", notFoundHandler)
+	r.HandleFunc("/", notFoundHandler)
 
 	httpEndpoints := service.Endpoints()
 
@@ -147,7 +148,7 @@ func NewHttpServer(service Service, metrics *StandardMetrics) *HttpServer {
 	for uri := range httpEndpoints {
 		stdout.Printf("registering endpoint %s", uri)
 		endpoints := httpEndpoints[uri]
-		mux.HandleFunc(uri, func(w http.ResponseWriter, r *http.Request) {
+		r.HandleFunc(uri, func(w http.ResponseWriter, r *http.Request) {
 
 			// ctx is the Context for this handler. Calling cancel closes the
 			// ctx.Done channel, which is the cancellation signal for requests
@@ -210,7 +211,7 @@ func NewHttpServer(service Service, metrics *StandardMetrics) *HttpServer {
 	}
 
 	return &HttpServer{
-		mux: mux,
+		mux: r,
 	}
 }
 

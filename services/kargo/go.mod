@@ -1,16 +1,9 @@
 module github.com/totomz/template-burrito/services/kargo
 
-go 1.19
-
-replace github.com/totomz/template-burrito/common/httpserver => ../../common/httpserver
-
-require github.com/totomz/template-burrito/common/httpserver v0.0.0-00010101000000-000000000000
-
-replace github.com/totomz/template-burrito/common/burrito-common => ../../common/burrito-common
-
-require github.com/totomz/template-burrito/common/burrito-common v0.0.0-00010101000000-000000000000
+go 1.21
 
 require (
+	github.com/croccocode/golibz v0.0.0-20230304175527-8719bb0b0ad4
 	github.com/form3tech-oss/jwt-go v3.2.5+incompatible
 	go.opencensus.io v0.24.0
 )
@@ -31,7 +24,7 @@ require (
 	github.com/prometheus/common v0.37.0 // indirect
 	github.com/prometheus/procfs v0.8.0 // indirect
 	github.com/prometheus/statsd_exporter v0.22.7 // indirect
-	golang.org/x/sys v0.0.0-20220708085239-5a0f0661e09d // indirect
+	golang.org/x/sys v0.0.0-20220908164124-27713097b956 // indirect
 	google.golang.org/protobuf v1.28.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
