@@ -1,0 +1,22 @@
+image:
+  repository: 767398121280.dkr.ecr.eu-west-1.amazonaws.com/rea
+  tag: "1.2_6a14d455-30437"
+
+env: "local"
+awsRoleArn: ""
+googleCredentials: ""
+replicas: 1
+resources:
+  limits:
+    cpu: 1000m
+    memory: 512Mi
+  requests:
+    cpu: 30m
+    memory: 256Mi
+rea:
+  config: |
+    bind:
+      port: 8089    
+ingress:
+  host: api.hack2.heero.me
+servicePort: 8089

@@ -1,0 +1,9 @@
+gcloud:
+  project: heero-hack-412816  
+firebase:
+  project: heero-hack-412816
+aws:
+#  sharedConfigProfile: heero-hack
+bind:
+  port: 9091
+

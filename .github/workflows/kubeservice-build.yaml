@@ -1,0 +1,59 @@
+on:
+  workflow_call:
+    inputs:
+      service:
+        required: true
+        type: string
+      environment:
+        required: true
+        type: string
+permissions:
+  id-token: write
+  contents: read
+      
+env:
+  HEERO_AWS_ACCOUNT_ID: ${{ inputs.environment == 'prod' && '654654538697' || '767398121280' }}
+  HEERO_GCLOUD_IDP: ${{ inputs.environment == 'prod' && 'projects/460392105513/locations/global/workloadIdentityPools/cicd-pipeline/providers/github' || 'projects/804148525421/locations/global/workloadIdentityPools/cicd-pipeline/providers/github' }}
+
+jobs:   
+  build:    
+    name: ${{ inputs.environment }}
+    runs-on: arm-bubuntu-8
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v6.0.2
+
+      - name: Install Terraform
+        uses: hashicorp/setup-terraform@main
+        with:
+          terraform_version: latest
+          terraform_wrapper: 'true'
+          
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Set up Java 21 (thanks broca)
+        run: echo "JAVA_HOME=${JAVA_HOME_21_X64}" >> $GITHUB_ENV
+
+      - name: Set AWS Role ARN
+        run: |
+          if [ "${{ inputs.environment }}" == "prod" ]; then
+            echo "AWS Account: heero-prod"
+            echo "roleArn=arn:aws:iam::654654538697:role/github-action" >> $GITHUB_ENV
+          else
+            echo "AWS Account: heero-hack"
+            echo "roleArn=arn:aws:iam::767398121280:role/github-action" >> $GITHUB_ENV            
+          fi
+
+      - name: configure aws credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: eu-west-1
+          role-to-assume: ${{ env.roleArn }}
+
+      - name: build
+        run: ./shMakefile build-${{ inputs.service }} --env=${{ inputs.environment }}
+
+      - name: push container images & helm charts
+        run: ./shMakefile push-kubeservice --service=${{ inputs.service }} --env=${{ inputs.environment }}
+  

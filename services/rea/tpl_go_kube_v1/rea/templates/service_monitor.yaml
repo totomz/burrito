@@ -1,0 +1,16 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "rea.fullname" . }}
+  labels:
+    {{- include "rea.labels" . | nindent 4 }}
+spec:
+  namespaceSelector:
+    matchNames:
+      - rea
+  selector:
+    matchLabels:
+      {{- include "rea.selectorLabels" . | nindent 6 }}
+  endpoints:
+  - port: metrics
+    interval: 30s

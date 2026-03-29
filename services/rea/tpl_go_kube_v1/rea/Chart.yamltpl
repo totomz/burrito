@@ -1,0 +1,8 @@
+apiVersion: v2
+name: [[.ServiceName]]
+description: Good luck my friend!
+
+type: application
+
+version: "#"
+appVersion: "@"

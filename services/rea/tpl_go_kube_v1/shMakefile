@@ -1,0 +1,24 @@
+test-[[.ServiceName]](){
+    go test -timeout 180s -count=1 --parallel=6 ./services/[[.ServiceName]]   
+}
+
+build-[[.ServiceName]]() {
+  mustVar env
+  
+  h1 "Building [[.ServiceName]]"
+  log "[[.ServiceName]]: clean old builds"
+  pushd services/[[.ServiceName]] || true
+    rm -rf bin || true
+    mkdir bin || true
+    
+    log "[[.ServiceName]]: build start"
+    gitCommit=$(gitver)
+    gitBranch=$(git rev-parse --abbrev-ref HEAD | awk -F'/' '{print $NF}')
+    buildTime=$(date "+%Y/%m/%d-%H:%M:%S")
+  
+  
+    time CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -ldflags "-X github.com/Screevosrl/talk-to-me/services/[[.ServiceName]].BuildTime=${buildTime} -X github.com/Screevosrl/talk-to-me/services/[[.ServiceName]].GitCommit=${gitCommit} -X github.com/Screevosrl/talk-to-me/services/[[.ServiceName]].GitBranch=${gitBranch}" -o bin/[[.ServiceName]]_linux_arm64 app/cmd/main.go
+    log "[[.ServiceName]]: build completed!"
+  
+  popd 
+}
