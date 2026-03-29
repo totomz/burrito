@@ -1,2 +1,121 @@
-setcolor
+#!/usr/bin/env bash
 
+set -e
+
+# utilities functions, keep as first import
+source ./functions.sh
+source ./shMakefile.sh
+
+# Each service defines its own build/deploy functions in a local shMakefile.
+# Sourcing them here makes those functions available as targets in this root shMakefile,
+# so you can call e.g. `./shMakefile build-appetizer` from the repo root.
+# But this has a risk: it would source any shMakefile found in subdirectories, including nested ones you might not intend. The explicit list is more predictable and safe.
+shopt -s globstar
+for f in ./**/shMakefile; do
+  # skip myself
+  [[ "$f" == "./shMakefile" ]] && continue
+  # skip the examples in the project repo
+  [[ "$f" == ./examples/* ]] && continue
+  # shellcheck source=/dev/null
+  source "$f"
+done
+
+###################################################
+# Invoke the target - do not edit after this line #
+###################################################
+check-updates() {
+  ## Check for updates from GitHub main. If updates are found, prompts to overwrite local files.
+  ## Silently skips if curl is missing. Exits 3 if updates are available.
+
+  if ! command -v curl &>/dev/null; then
+    errorLog "check-update error: missing tool curl"    
+    return 0
+  fi
+
+  if ! command -v diff &>/dev/null; then
+    errorLog "check-update error: missing tool diff"
+    return 0
+  fi
+  
+  local SCRIPT_DIR=""
+  SCRIPT_DIR=$(dirname "$(realpath "${BASH_SOURCE[0]}")")
+  
+  local doUpdate=false
+  local tmp 
+  tmp=$(mktemp)
+  for file in shMakefile functions.sh; do
+    if curl -sf "https://raw.githubusercontent.com/totomz/shmake/main/${file}" -o "$tmp"; then
+      if ! diff -w -q "$tmp" "${SCRIPT_DIR}/${file}" &>/dev/null; then
+        echo "${file} - new version available."
+        doUpdate=true
+        break
+      else 
+        echo "${file} - no update."
+      fi
+    fi
+  done
+  rm -f "$tmp"
+  
+  if [[ "$doUpdate" == true ]]; then
+    read -r -p "Apply updates? [y/N] " _answer
+    if [[ "$_answer" =~ ^[Yy]$ ]]; then
+      curl -sf "https://raw.githubusercontent.com/totomz/shmake/main/shMakefile" -o "${SCRIPT_DIR}"/shMakefile
+      curl -sf "https://raw.githubusercontent.com/totomz/shmake/main/functions.sh" -o "${SCRIPT_DIR}"/functions.sh
+    fi
+  fi
+
+}
+
+_show-help() {
+  ## Print the script usage documentation
+  ## !!! hidden functions (that starts with `_` ) do not compare in the usage doc!  !!!
+  
+  echo "Usage: $(basename "$0") <command> [--var=value ...]"
+  echo ""
+  awk '
+    /^[[:alpha:]][[:alnum:]_-]*\(\)/ {
+      if (fname != "") { names[++n] = fname; descs[fname] = desc }
+      fname = $0; gsub(/\(\).*/, "", fname)
+      if (fname ~ /^_/) { fname = ""; desc = ""; next }
+      desc = ""; next
+    }
+    fname && /^[[:space:]]*##($|[^#])/ {
+      line = $0; gsub(/^[[:space:]]*##[[:space:]]?/, "", line)
+      desc = desc line "\n"; next
+    }
+    END {
+      if (fname != "") { names[++n] = fname; descs[fname] = desc }
+      print "Available functions:"
+      for (i = 1; i <= n; i++) print "- " names[i]
+      print "***********"
+      for (i = 1; i <= n; i++) {
+        printf "\033[33m%s\033[0m\n", names[i]
+        if (descs[names[i]] != "") printf "%s", descs[names[i]]
+        print ""
+      }
+    }
+  ' "$0" "$(dirname "$0")/shMakefile.sh"
+}
+
+# Parse arguments.
+# The first argument is the target to invoke, , then it expects variables
+TARGET=$1
+shift || true
+
+if [[ -z "$TARGET" || "$TARGET" == "-h" || "$TARGET" == "--help" ]]; then
+  _show-help
+  exit 0
+fi
+
+while [[ $# -gt 0 ]]; do
+  v=$1
+  shift
+  if [[ $v == --* ]]; then
+    key=$(echo "$v" | awk -F= '{print $1}' | sed 's/-//g')
+    value=$(echo "$v" | awk -F= '{print $2}')
+
+    eval "${key}=${value}"
+  fi
+done
+
+eval "${TARGET}"

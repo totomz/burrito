@@ -1,0 +1,67 @@
+name: "[Kubeservice] - Build & Deploy"
+run-name: "[deploy] ${{ inputs.service }} to ${{ inputs.environment }} by @${{ github.actor }}"
+
+on:
+  workflow_dispatch:
+    inputs:
+      service:
+        description: The name of the service to deploy
+        required: true
+        default: kargo
+        type: choice
+        options:
+          - pacioli
+          - pazzorazio
+          - kargo
+          - brocadue
+          - scooby
+          - kgb
+          - lilli
+          - fortytwo
+          - kfc
+          - molinari
+      environment:
+        description: Where to deploy `prod` or `hack`
+        required: true        
+        default: hack
+        type: choice
+        options:
+          - hack
+          - prod
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  HEERO_AWS_ACCOUNT_ID: ${{ inputs.environment == 'prod' && '654654538697' || '767398121280' }}
+  HEERO_GCLOUD_IDP: ${{ inputs.environment == 'prod' && 'projects/460392105513/locations/global/workloadIdentityPools/cicd-pipeline/providers/github' || 'projects/804148525421/locations/global/workloadIdentityPools/cicd-pipeline/providers/github' }}
+
+jobs:
+  test:
+    name: Test
+    uses: ./.github/workflows/kubeservice-test.yaml
+    secrets: inherit
+    with:
+      service: ${{ inputs.service }}
+      environment: hack
+  
+  push:
+    name: "Build & Push ${{ inputs.environment }}"
+    needs:
+      - test
+    uses: ./.github/workflows/kubeservice-build.yaml
+    secrets: inherit
+    with:
+      service: ${{ inputs.service }}
+      environment: ${{ inputs.environment }}
+  
+  deploy:
+    name: "Deploy ${{ inputs.environment }}"
+    needs:
+      - push
+    uses: ./.github/workflows/kubeservice-deploy.yaml
+    secrets: inherit
+    with:
+      service: ${{ inputs.service }}
+      environment: ${{ inputs.environment }}
+      

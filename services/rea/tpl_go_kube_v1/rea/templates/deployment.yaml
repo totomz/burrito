@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "rea.fullname" . }}
+  labels:
+    {{- include "rea.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicas }}
+  selector:
+    matchLabels:
+      {{- include "rea.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:      
+      labels:
+        {{- include "rea.selectorLabels" . | nindent 8 }}    
+    spec:      
+      serviceAccountName: {{ include "rea.fullname" . }}
+      volumes:
+        - name: gcloud-creds
+          secret:
+            secretName: {{ include "rea.fullname" . }}-gcloud            
+        - name: config
+          configMap:
+            name: {{ include "rea.fullname" . }}
+            items:
+              - key: config.yaml
+                path: config-{{ .Values.env }}.yaml
+      containers:
+        - name: {{ .Chart.Name }}      
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          command: [ "/opt/heero/rea"]
+          #command: [ "/bin/sleep", "3650d" ]
+          imagePullPolicy: Always
+          env:
+            - name: "ENV"
+              value: {{ .Values.env }}          
+            - name: "GOOGLE_APPLICATION_CREDENTIALS"
+              value: /etc/google_creds/google-credentials.json
+          ports:
+            - name: http
+              containerPort: {{ .Values.servicePort }}
+              protocol: TCP            
+          livenessProbe:
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+            successThreshold: 1
+            timeoutSeconds: 30
+            httpGet:
+              path: /_probe/liveness
+              port: http
+          readinessProbe:
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 3
+            successThreshold: 1
+            timeoutSeconds: 10
+            httpGet:
+              path: /_probe/startup
+              port: http
+          resources:
+            limits:
+              cpu: {{ .Values.resources.limits.cpu }}
+              memory: {{ .Values.resources.limits.memory }}
+            requests:
+              cpu: {{ .Values.resources.requests.cpu }}
+              memory: {{ .Values.resources.requests.cpu }}
+          volumeMounts:
+            - name: gcloud-creds
+              mountPath: /etc/google_creds
+              readOnly: true
+            - name: config
+              mountPath: /etc/heero              
+              

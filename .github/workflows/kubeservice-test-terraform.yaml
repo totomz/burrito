@@ -1,0 +1,67 @@
+on:
+  workflow_call:
+    inputs:
+      service:
+        required: true
+        type: string
+      environment:
+        required: true
+        type: string
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  HEERO_AWS_ACCOUNT_ID: ${{ inputs.environment == 'prod' && '654654538697' || '767398121280' }}
+  HEERO_GCLOUD_IDP: ${{ inputs.environment == 'prod' && 'projects/460392105513/locations/global/workloadIdentityPools/cicd-pipeline/providers/github' || 'projects/804148525421/locations/global/workloadIdentityPools/cicd-pipeline/providers/github' }}
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs: 
+  
+  terraform:
+    name: ${{ inputs.environment }}
+    runs-on: arm-bubuntu-8
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v6.0.2
+      
+      - name: Install Terraform
+        uses: hashicorp/setup-terraform@main
+        with:
+          terraform_version: latest
+          terraform_wrapper: 'true'
+          
+      - name: Authenticate to Google Cloud with kargo service account
+        uses: google-github-actions/auth@v3
+        with:
+          project_id: 'heero-${{ inputs.environment }}-412816'
+          workload_identity_provider: '${{ env.HEERO_GCLOUD_IDP }}'
+          service_account: 'cicd-github@heero-${{ inputs.environment }}-412816.iam.gserviceaccount.com'                          
+    
+      - name: configure aws credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: eu-west-1
+          role-to-assume: "arn:aws:iam::${{ env.HEERO_AWS_ACCOUNT_ID }}:role/github-action"      
+      
+      - id: install-aws-cli
+        uses: unfor19/install-aws-cli-action@v1              
+      
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+      
+      - name: configure EKS cluster
+        run: aws eks update-kubeconfig --region eu-west-1 --name heero-${{ inputs.environment }}
+        
+      - name: Set up WireGuard
+        uses: egor-tensin/setup-wireguard@v1
+        with:
+          endpoint: vpna.mgmt.heero.me:443
+          endpoint_public_key: Aa/Wzue08MoLDzFmQhvV80dhx4BqqbW0307/V3lPERg=
+          ips: 172.16.0.10/32
+          allowed_ips: 172.16.0.0/16, 10.196.0.0/16, 10.2.0.0/16, 10.16.0.0/16
+          private_key: '${{ secrets.WH_HEERO_MGMT_PRIVATEKEY }}'
+      
+      - name: Terraform Plan
+        run: ./shMakefile test-kubeservice-infra --service=${{ inputs.service }} --env=${{ inputs.environment }}      

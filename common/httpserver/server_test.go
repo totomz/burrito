@@ -3,6 +3,7 @@ package httpserver
 import (
 	"context"
 	"fmt"
+	"github.com/google/go-cmp/cmp"
 	"io"
 	"log"
 	"net/http"
@@ -15,18 +16,26 @@ type MockedService struct {
 	endpoints map[string]map[string]Endpoint
 }
 
+func (s *MockedService) ReadinessProbe(ctx context.Context, r *http.Request) (interface{}, error) {
+	return "readiness", nil
+}
+
+func (s *MockedService) WsEndpoints() map[string]WsEndpoint {
+	return make(map[string]WsEndpoint)
+}
 func (s *MockedService) StartupProbe(_ context.Context, _ *http.Request) (interface{}, error) {
 	return "startup", nil
 }
-
 func (s *MockedService) LivenessProbe(_ context.Context, _ *http.Request) (interface{}, error) {
 	return "liveness", nil
 }
 func (s *MockedService) Endpoints() map[string]map[string]Endpoint {
 	return s.endpoints
 }
+func (s *MockedService) DeploymentEnvironment() string { return "local" }
 
 func TestServerStartStop(t *testing.T) {
+	t.Parallel()
 
 	stdout = log.New(os.Stdout, "", log.Lshortfile|log.Ltime)
 	stderr = log.New(os.Stdout, "[ERROR]", log.Lshortfile|log.Ltime)
@@ -60,7 +69,7 @@ func TestServerStartStop(t *testing.T) {
 	service := MockedService{endpoints: endpoints}
 
 	// Override logs to not log on files
-	server := NewHttpServer(&service, stdout, stderr)
+	server := NewHttpServer(&service)
 	server.StartAsync("localhost", 8022)
 
 	err := doGet(t, "http://localhost:8022/ping", nil, 200, []byte("get-hello, world!"))
@@ -148,5 +157,41 @@ func doPost(t *testing.T, uri string, expectedStatusCode int, expectedResult []b
 func HelloWorld(prefix string) Handler {
 	return func(ctx context.Context, request *http.Request) (interface{}, error) {
 		return fmt.Sprintf("%s-hello, world!", prefix), nil
+	}
+}
+
+func TestGetIdToken(t *testing.T) {
+	t.Parallel()
+
+	// Get bearer ctoken
+	h1 := http.Header{}
+	h1.Set("authorization", "Bearer 123123123123123123123")
+
+	if diff := cmp.Diff(GetIdToken(h1), "123123123123123123123"); len(diff) > 0 {
+		t.Fatalf("\ntoken not found\n%s", diff)
+	}
+
+	// Actually, it gets **only** Bearer Authorization token longer than 10 chars
+	h2 := http.Header{}
+	h2.Set("Authorization", "12345678901")
+
+	if diff := cmp.Diff(GetIdToken(h2), ""); len(diff) > 0 {
+		t.Fatalf("\ntoken not found\n%s", diff)
+	}
+
+	// It handles websocket, too (no bearer because header value can't have spaces)
+	h3 := http.Header{}
+	h3.Set("Sec-WebSocket-Protocol", "authorization, 12345678901, pippo, pasticcio")
+
+	if diff := cmp.Diff(GetIdToken(h3), "12345678901"); len(diff) > 0 {
+		t.Fatalf("\ntoken not found\n%s", diff)
+	}
+
+	// but it must be the firrst header
+	h4 := http.Header{}
+	h4.Set("Sec-WebSocket-Protocol", "pippo, authorization, Bearer 12345678901")
+
+	if diff := cmp.Diff(GetIdToken(h4), ""); len(diff) > 0 {
+		t.Fatalf("\ntoken not found\n%s", diff)
 	}
 }

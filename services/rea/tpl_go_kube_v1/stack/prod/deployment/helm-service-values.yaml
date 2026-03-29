@@ -1,0 +1,17 @@
+image:
+  repository: ${imageRepository}
+env: ${env}
+awsRoleArn: ${awsRoleArn}
+googleCredentials: ${googleCredentials}
+replicas: 1
+limits:
+  cpu: 2000m
+  memory: 512Mi
+requests:
+  cpu: 10m
+  memory: 256Mi
+ingress:
+  host: [[.ServiceName]].prod.heero.me    
+rea:
+  config: |
+    ${configText}
