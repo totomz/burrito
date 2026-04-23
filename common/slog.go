@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	"strings"
+	"path/filepath"
 )
 
 var (
@@ -110,13 +110,13 @@ func (h *CtxLogHandler) WithGroup(name string) slog.Handler {
 }
 
 func shortenFilePath(path string) string {
-
-	if len(path) < 9 {
+	wd, err := os.Getwd()
+	if err != nil {
 		return path
 	}
-	if !strings.Contains(path, "/services") {
+	rel, err := filepath.Rel(wd, path)
+	if err != nil {
 		return path
 	}
-	parts := strings.Split(path, "/services")
-	return "services" + parts[1]
+	return rel
 }
