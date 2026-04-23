@@ -35,7 +35,7 @@ func (e ErrNotFound) Error() string {
 	return fmt.Sprintf("[not found] - %s", e.Message)
 }
 func (e ErrNotFound) HttpCode() int {
-	return http.StatusBadRequest
+	return http.StatusNotFound
 }
 
 type ErrForbidden struct {
