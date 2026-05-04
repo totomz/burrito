@@ -29,13 +29,13 @@ func InitConfigWithReload(serviceName string, enableReload bool) {
 	viper.AddConfigPath("./envs")
 	viper.AddConfigPath("../envs")
 	viper.AddConfigPath("../../envs")
-	viper.AddConfigPath("/etc/heero")
+	viper.AddConfigPath("/etc/" + serviceName)
 	err := viper.ReadInConfig()
 
 	// empty service name force configuration using env variable only
 	if serviceName != "" {
 		if err != nil {
-			panic(err)
+			slog.Info("no config file found, relying on ENV var")
 		}
 	}
 

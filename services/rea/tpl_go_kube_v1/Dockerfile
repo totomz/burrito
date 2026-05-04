@@ -12,7 +12,7 @@ RUN echo "Building for platform: ${TARGETOS} / ${TARGETARCH}"
 RUN apt-get update \
     && apt-get install -y ca-certificates vim telnet \
     && rm -rf /var/lib/apt/lists/* 
-WORKDIR /opt/heero
+WORKDIR /opt/[[.ServiceName]]
 
 COPY bin/[[.ServiceName]]_${TARGETOS}_${TARGETARCH} [[.ServiceName]]
 CMD ["./[[.ServiceName]]"]

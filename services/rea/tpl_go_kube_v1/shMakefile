@@ -17,7 +17,8 @@ build-[[.ServiceName]]() {
     buildTime=$(date "+%Y/%m/%d-%H:%M:%S")
   
   
-    time CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -ldflags "-X github.com/Screevosrl/talk-to-me/services/[[.ServiceName]].BuildTime=${buildTime} -X github.com/Screevosrl/talk-to-me/services/[[.ServiceName]].GitCommit=${gitCommit} -X github.com/Screevosrl/talk-to-me/services/[[.ServiceName]].GitBranch=${gitBranch}" -o bin/[[.ServiceName]]_linux_arm64 app/cmd/main.go
+    time CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o bin/[[.ServiceName]]_linux_arm64 app/cmd/main.go
+    time CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o bin/[[.ServiceName]]_linux_amd64 app/cmd/main.go
     log "[[.ServiceName]]: build completed!"
   
   popd 

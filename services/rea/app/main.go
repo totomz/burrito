@@ -13,7 +13,7 @@ func main() {
 	common.SetDefaultLogger()
 
 	serviceName := ""
-	flag.StringVar(&serviceName, "deity", "", "the name of the God to generate")
+	flag.StringVar(&serviceName, "name", "", "the name of the God to generate")
 
 	flag.Parse()
 
