@@ -6,6 +6,6 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	InitConfig("")
+	// InitConfig("")
 	os.Exit(m.Run())
 }

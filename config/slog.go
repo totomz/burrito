@@ -1,7 +1,4 @@
-// Package common slog implements the third iteration towards a logging framework that makes our CTO happy
-// The current idea is that the Golang slog package is great, we only need some cosmetics to always log some
-// values from the context
-package common
+package config
 
 import (
 	"context"
@@ -32,6 +29,9 @@ type CtxLogHandler struct {
 	next slog.Handler
 }
 
+// NewCtxLogHandler implements the third iteration towards a logging framework that makes our CTO happy
+// The current idea is that the Golang slog package is great, we only need some cosmetics to always log some
+// values from the context
 func NewCtxLogHandler() *CtxLogHandler {
 	return &CtxLogHandler{
 		next: slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{AddSource: true, ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
@@ -58,10 +58,6 @@ func (h *CtxLogHandler) Enabled(_ context.Context, _ slog.Level) bool {
 }
 
 func (h *CtxLogHandler) Handle(ctx context.Context, record slog.Record) error {
-	if !IsKube() {
-		return h.next.Handle(ctx, record)
-	}
-
 	requestId := ctx.Value(CtxRequestId)
 	if requestId != nil {
 		record.AddAttrs(slog.Any("request_id", requestId))
@@ -83,12 +79,8 @@ func (h *CtxLogHandler) Handle(ctx context.Context, record slog.Record) error {
 			return true
 		})
 		if !userAlreadyInTheAttributes {
-			user, isHeeroUser := userId.(User)
-			if isHeeroUser {
-				record.AddAttrs(slog.Any("user", user.UserID()))
-			} else {
-				record.AddAttrs(slog.Any("user_id", userId))
-			}
+			user := userId.(string)
+			record.AddAttrs(slog.Any("user_id", user))
 		}
 	}
 

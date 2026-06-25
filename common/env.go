@@ -75,20 +75,3 @@ func GetenvOrDie(key string) string {
 	}
 	return v
 }
-
-//
-// // GetEnv retrieves the value of the environment variable named by the key
-// // if defined, otherwise return an error
-// func GetEnv(k string) (string, error) {
-// 	v := os.Getenv(k)
-// 	if v == "" {
-// 		return "", fmt.Errorf("%s environment variable not set", k)
-// 	}
-// 	return v, nil
-// }
-//
-// func PanicIfErr(err error) {
-// 	if err != nil {
-// 		panic(err)
-// 	}
-// }
