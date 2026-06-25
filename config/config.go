@@ -26,7 +26,7 @@ func InitConfig(serviceName string) {
 }
 
 func InitConfigFull(serviceName string, configMiddleware ConfigMiddleware) {
-	if _configMiddleware != nil {
+	if configMiddleware != nil {
 		_configMiddleware = configMiddleware
 	}
 
