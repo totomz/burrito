@@ -39,7 +39,7 @@ env:
 jobs:
   test:
     name: Test
-    uses: ./.github/workflows/kubeservice-test.yaml
+    uses: ./.github/workflows/test.yaml
     secrets: inherit
     with:
       service: ${{ inputs.service }}

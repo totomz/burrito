@@ -1,0 +1,46 @@
+name: test library
+on:
+  workflow_call:
+    inputs:
+      service:
+        required: true
+        type: string
+      environment:
+        required: true
+        type: string
+permissions:
+  id-token: write
+  contents: write
+      
+jobs:
+  unit:
+    runs-on: ubuntu-22.04
+    env:
+      VERSION_PREFIX: v2.0
+      
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v6.0.2
+      
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '1.25'
+
+      - name: run unit tests
+        run: ./shMakefile test-all
+
+      - name: tag next patch version
+        run: |
+          set -e
+          git fetch --tags --force
+          # Latest existing tag in the ${VERSION_PREFIX}.x series (empty on first run)
+          latest=$(git tag -l "${VERSION_PREFIX}.*" | sort -V | tail -n1)
+          if [ -z "$latest" ]; then
+            next="${VERSION_PREFIX}.0"
+          else
+            patch="${latest##*.}"
+            next="${VERSION_PREFIX}.$((patch + 1))"
+          fi
+          echo "tagging $next"
+          git tag "$next"
+          git push origin "$next"
