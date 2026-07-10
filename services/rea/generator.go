@@ -11,7 +11,7 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/totomz/burrito/common"
+	"github.com/totomz/burrito/v2/common"
 )
 
 type ServiceSeed struct {

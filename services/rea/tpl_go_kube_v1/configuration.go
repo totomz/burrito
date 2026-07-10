@@ -1,13 +1,12 @@
 package rea
 
 import (
-	"github.com/spf13/viper"
-	"github.com/totomz/burrito/common"
+	"github.com/totomz/burrito/v2/common"
 )
 
 func getGcloudProjectId() string {
-	return common.MustGetString("gcloud.project")
+	return common.MustGet[string]("gcloud.project")
 }
 func GetBindPort() int {
-	return viper.GetInt("bind.port")
+	return common.MustGet[int]("bind.port")
 }

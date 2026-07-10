@@ -6,8 +6,8 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/totomz/burrito/common"
-	"github.com/totomz/burrito/common/httpserver"
+	"github.com/totomz/burrito/v2/common"
+	"github.com/totomz/burrito/v2/httpserver"
 )
 
 var (

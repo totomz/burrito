@@ -5,8 +5,8 @@ import (
 	"log/slog"
 	"os"
 
-	common "github.com/totomz/burrito/common"
-	"github.com/totomz/burrito/services/rea"
+	"github.com/totomz/burrito/v2/common"
+	"github.com/totomz/burrito/v2/services/rea"
 )
 
 func main() {

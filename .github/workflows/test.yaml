@@ -34,7 +34,10 @@ jobs:
       - name: run unit tests
         run: ./shMakefile test-all
 
+      # Tag only when pushing to the v2 branch, and only if the tests above passed.
       - name: tag next patch version
+        id: tag
+        if: github.ref == 'refs/heads/v2'
         run: |
           set -e
           git fetch --tags --force
@@ -49,3 +52,17 @@ jobs:
           echo "tagging $next"
           git tag "$next"
           git push origin "$next"
+          # Expose the tag name to the following steps
+          echo "next=$next" >> "$GITHUB_OUTPUT"
+
+      # Create a GitHub release for the tag just pushed.
+      - name: create github release        
+        if: github.ref == 'refs/heads/v2'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          gh release create "${{ steps.tag.outputs.next }}" \
+            --title "${{ steps.tag.outputs.next }}" \
+            --target "${{ github.sha }}" \
+            --generate-notes

@@ -3,6 +3,7 @@ package telemetry
 import (
 	"context"
 	"fmt"
+	"github.com/totomz/burrito/v2/common"
 	"log"
 	"log/slog"
 	"net/http"
@@ -24,7 +25,7 @@ func StartOpenTelemetryPrometheus(serviceName string) func() {
 		resource.NewWithAttributes(semconv.SchemaURL,
 			semconv.ServiceNamespace("heero"),
 			semconv.ServiceName(serviceName),
-			semconv.DeploymentEnvironment(string(GetEnvironment())),
+			semconv.DeploymentEnvironment(string(common.GetEnvironment())),
 		))
 
 	metricExporter, err := prometheus.New()

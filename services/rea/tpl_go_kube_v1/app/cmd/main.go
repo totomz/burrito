@@ -3,57 +3,35 @@ package main
 import (
 	"context"
 	"log/slog"
-	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
-	"github.com/totomz/burrito/common"
-	"github.com/totomz/burrito/services/rea"
+	"github.com/totomz/burrito/v2/common"
+	"github.com/totomz/burrito/v2/services/rea"
+	"github.com/totomz/burrito/v2/telemetry"
 )
 
 func main() {
 	common.InitConfig("[[.ServiceName]]")
-	ctx := context.Background()
-	common.StartOpenTelemetryPrometheus("[[.ServiceName]]")
+
+	// Cancel ctx on SIGTERM/SIGINT
+	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
+	defer cancel()
+
+	telemetry.StartOpenTelemetryPrometheus("[[.ServiceName]]")
 
 	service := rea.NewService()
-
-	// Defer the stop function
-	defer service.Stop(ctx)
 
 	// Run the service
 	go service.Run(ctx)
 
-	// env := common.GetEnvironment()
-	// if env != common.EnvironmentLocal {
-	// 	temporalAPIKey := common.MustGetString("temporal.token")
-	//
-	// 	temporalClient, err := common.GetTemporalClient(ctx, common.GetTemporalNamespace(), env, temporalAPIKey)
-	// 	if err != nil {
-	// 		panic(err)
-	// 	}
-	// 	defer temporalClient.Close()
-	//
-	// 	// Register here workflows and activities
-	// 	// meWorker := worker.New(temporalClient, common.TemporalTaskQueuePacioli, worker.Options{})
-	// 	// meWorker.RegisterActivityWithOptions(pacioli.UserEventActivityPacioli, activity.RegisterOptions{Name: "UserEventActivityPacioli"})
-	// 	// slog.Info("temporal activity registered", "activity", "UserEventActivityPacioli", "queue", common.TemporalTaskQueuePacioli, "namespace", common.GetTemporalNamespace())
-	// 	//
-	// 	// err = meWorker.Start()
-	// 	// if err != nil {
-	// 	// 	panic(err)
-	// 	// }
-	// 	// defer meWorker.Stop()
-	// }
-	//
-	// if env == common.EnvironmentLocal {
-	// 	slog.Info("#### LOCAL ENV DETECTED - TEMPORAL DISABLED ####")
-	// }
-
-	interupt := make(chan os.Signal, 1)
-	signal.Notify(interupt, syscall.SIGTERM, syscall.SIGINT)
-	<-interupt
-
+	// Block until a signal cancels the context
+	<-ctx.Done()
 	slog.Info("system shutdown")
 
+	// Use a fresh, bounded context for shutdown: ctx is already cancelled here
+	stopCtx, stopCancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer stopCancel()
+	service.Stop(stopCtx)
 }

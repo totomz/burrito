@@ -6,8 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/google/uuid"
-	"github.com/gorilla/mux"
-	"github.com/totomz/burrito/common"
+	"github.com/totomz/burrito/v2/common"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 	semconv "go.opentelemetry.io/otel/semconv/v1.21.0"
@@ -70,7 +69,7 @@ type WsEndpoint struct {
 }
 
 type HttpServer struct {
-	mux      *mux.Router
+	mux      *http.ServeMux
 	server   *http.Server
 	StopChan chan bool
 }
@@ -200,7 +199,7 @@ func NewHttpServer(service Service /*, metrics *StandardMetrics*/) *HttpServer {
 
 	// fileServer := http.FileServer(http.Dir("./webmin/dist/"))
 	// mux := http.NewServeMux()
-	r := mux.NewRouter()
+	r := http.NewServeMux()
 
 	wdir, _ := os.Getwd()
 	staticContents := fmt.Sprintf("%s%sweb_static", wdir, string(os.PathSeparator))
@@ -208,7 +207,8 @@ func NewHttpServer(service Service /*, metrics *StandardMetrics*/) *HttpServer {
 	s, err := os.Stat(staticContents)
 	if err == nil && s.IsDir() {
 		stdout.Printf("serving static contents from: %s", staticContents)
-		r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir(staticContents))))
+		// A pattern ending in "/" matches the whole subtree
+		r.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir(staticContents))))
 	}
 
 	httpEndpoints := service.Endpoints()
@@ -347,15 +347,23 @@ func NewHttpServer(service Service /*, metrics *StandardMetrics*/) *HttpServer {
 
 	}
 
-	// nofFoundHandler := func(w http.ResponseWriter, r *http.Request) {}
-	r.NotFoundHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		stdout.Printf(`msg="not found" method="%s" uri="%s" source="%s"`, r.Method, r.RequestURI, r.RemoteAddr)
-		w.WriteHeader(http.StatusNotFound)
-	})
-
 	return &HttpServer{
 		mux: r,
 	}
+}
+
+// notFoundLogger wraps a ServeMux to log and reply 404 on unmatched requests,
+// replacing gorilla's Router.NotFoundHandler.
+func notFoundLogger(m *http.ServeMux) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// An empty pattern means no route matched the request
+		if _, pattern := m.Handler(r); pattern == "" {
+			stdout.Printf(`msg="not found" method="%s" uri="%s" source="%s"`, r.Method, r.RequestURI, r.RemoteAddr)
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		m.ServeHTTP(w, r)
+	})
 }
 
 func setupCORS(w *http.ResponseWriter, _ *http.Request) {
@@ -365,7 +373,7 @@ func setupCORS(w *http.ResponseWriter, _ *http.Request) {
 }
 
 func (s *HttpServer) StartAsync(host string, port int) {
-	server := &http.Server{Addr: fmt.Sprintf("%s:%v", host, port), Handler: s.mux}
+	server := &http.Server{Addr: fmt.Sprintf("%s:%v", host, port), Handler: notFoundLogger(s.mux)}
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 	if os.Getenv("BIND_SSL") == "ssl" {
@@ -389,7 +397,7 @@ func (s *HttpServer) StartAsync(host string, port int) {
 			keyFile := strings.Join([]string{path, "live", "bbk.my-ideas.it", "privkey.pem"}, string(filepath.Separator))
 
 			wg.Done() // Call Done() here because Serve() is blocking. Done() will free the main thread
-			if err := server.ListenAndServeTLS(certFile, keyFile); err != http.ErrServerClosed {
+			if err := server.ListenAndServeTLS(certFile, keyFile); !errors.Is(err, http.ErrServerClosed) {
 				// unexpected error. port in use?
 				stderr.Printf("can't start the service: %v", err)
 			}
@@ -399,7 +407,7 @@ func (s *HttpServer) StartAsync(host string, port int) {
 	} else {
 		go func() {
 			wg.Done() // Call Done() here because Serve() is blocking. Done() will free the main thread
-			if err := server.ListenAndServe(); err != http.ErrServerClosed {
+			if err := server.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
 				panic(fmt.Sprintf("can't start the service: %v", err))
 			}
 			stdout.Printf("Server started on %s:%v", host, port)

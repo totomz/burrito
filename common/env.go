@@ -75,3 +75,11 @@ func GetenvOrDie(key string) string {
 	}
 	return v
 }
+
+func MustGetCwd() string {
+	wd, err := os.Getwd()
+	if err != nil {
+		panic(err)
+	}
+	return wd
+}
