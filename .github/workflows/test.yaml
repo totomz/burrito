@@ -1,5 +1,10 @@
 name: test library
 on:
+  # Run on every push to any branch (main, v2, feature branches, ...).
+  # '**' matches all branch names and excludes tag pushes.
+  push:
+    branches:
+      - '**'
   workflow_call:
     inputs:
       service:
