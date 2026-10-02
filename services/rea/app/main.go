@@ -10,7 +10,7 @@ import (
 )
 
 func main() {
-	common.SetDefaultLogger()
+	common.SetDefaultLogger(nil)
 
 	serviceName := ""
 	flag.StringVar(&serviceName, "name", "", "the name of the God to generate")

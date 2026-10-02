@@ -6,6 +6,6 @@ import (
 )
 
 func TestLogLine(t *testing.T) {
-	SetDefaultLogger()
+	SetDefaultLogger(nil)
 	slog.Info("ciao")
 }

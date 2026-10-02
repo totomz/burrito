@@ -28,6 +28,9 @@ type Options struct {
 
 	// ConfigMiddleware handle secrets (still in development)
 	ConfigMiddleware ConfigMiddleware
+
+	// LogLevel minimum level of the default logger. Nil defaults to slog.LevelInfo
+	LogLevel slog.Leveler
 }
 
 // InitConfig initialize the configuration by reading a yaml file
@@ -51,7 +54,7 @@ func InitConfig(serviceName string) {
 }
 
 func InitConfigWithOptions(options Options) {
-	SetDefaultLogger()
+	SetDefaultLogger(options.LogLevel)
 
 	var data []byte
 	var err error

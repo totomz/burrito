@@ -21,8 +21,9 @@ var (
 	CtxRequestUser = "__CTX_REQUEST_USER"
 )
 
-func SetDefaultLogger() {
-	slog.SetDefault(slog.New(NewCtxLogHandler()))
+// SetDefaultLogger installs a CtxLogHandler as default logger. A nil level defaults to slog.LevelInfo
+func SetDefaultLogger(level slog.Leveler) {
+	slog.SetDefault(slog.New(NewCtxLogHandler(level)))
 }
 
 type CtxLogHandler struct {
@@ -32,9 +33,9 @@ type CtxLogHandler struct {
 // NewCtxLogHandler implements the third iteration towards a logging framework that makes our CTO happy
 // The current idea is that the Golang slog package is great, we only need some cosmetics to always log some
 // values from the context
-func NewCtxLogHandler() *CtxLogHandler {
+func NewCtxLogHandler(level slog.Leveler) *CtxLogHandler {
 	return &CtxLogHandler{
-		next: slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{AddSource: true, ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
+		next: slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{AddSource: true, Level: level, ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
 			// Remove time.
 			if a.Key == slog.TimeKey && len(groups) == 0 {
 				return slog.Attr{}
@@ -53,8 +54,8 @@ func NewCtxLogHandler() *CtxLogHandler {
 	}
 }
 
-func (h *CtxLogHandler) Enabled(_ context.Context, _ slog.Level) bool {
-	return true
+func (h *CtxLogHandler) Enabled(ctx context.Context, level slog.Level) bool {
+	return h.next.Enabled(ctx, level)
 }
 
 func (h *CtxLogHandler) Handle(ctx context.Context, record slog.Record) error {
