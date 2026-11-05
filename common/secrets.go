@@ -39,7 +39,6 @@ func GetSecretBao(ctx context.Context, secretKey string) (string, error) {
 
 	// BAO_ADDRES and BAO_TOKEN are from env
 	cfg := api.DefaultConfig()
-
 	client, err := api.NewClient(cfg)
 	if err != nil {
 		return "", fmt.Errorf("error connecting to OpenBAO: %w", err)
