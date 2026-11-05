@@ -5,6 +5,10 @@ import (
 )
 
 func TestParseBaoURN(t *testing.T) {
+	if IsCICD() {
+		t.Skip("integration test that requires OpenBAO")
+	}
+
 	secret, err := GetSecretBao(t.Context(), "bao://totomz/massive#key")
 	if err != nil {
 		t.Fatal(err)
